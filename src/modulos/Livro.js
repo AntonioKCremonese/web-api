@@ -4,10 +4,10 @@ import InputCustomizado from '../components/InputCustomizado';
 import PubSub from 'pubsub-js';
 import TratamentoErro from '../modulos/TratamentoErro';
 
-class FormularioAutor extends Component {
+class FormularioLivro extends Component {
     constructor() {
         super();
-        this.state = { nome: '', email: '', senha: '' }
+        this.state = { titulo: '', preco: '', autorId: '' }
         this.enviaForm = this.enviaForm.bind(this);
         this.onChange = this.onChange.bind(this);
 
@@ -20,10 +20,10 @@ class FormularioAutor extends Component {
             contentType: 'application/json',
             dataType: "json",
             type: 'post',
-            data: JSON.stringify({ nome: this.state.nome, email: this.state.email, senha: this.state.senha }),
+            data: JSON.stringify({ titulo: this.state.titulo, preco: this.state.preco, autorId: this.state.autorId }),
             success: (novaListagem) => {
                 PubSub.publish('atualiza-lista-autores', novaListagem);
-                this.setState({ nome: '', email: '', senha: '' });
+                this.setState({ titulo: '', preco: '', autorId: '' });
             },
             error: (erro) => {
                 if (erro.status === 400) {
@@ -49,9 +49,21 @@ class FormularioAutor extends Component {
             <div className="pure-form pure-form-aligned">
                 <form className="pure-form pure-form-aligned" onSubmit={this.enviaForm} method="post">
                     <fieldset>
-                        <InputCustomizado name="nome" nomeLabel="Nome" id="nome" type="text" placeholder="Nome" value={this.state.nome} onChange={this.onChange} />
-                        <InputCustomizado name="email" nomeLabel="Email" id="email" type="email" placeholder="Email" value={this.state.email} onChange={this.onChange} />
-                        <InputCustomizado name="senha" nomeLabel="Senha" id="senha" type="password" placeholder="Senha" value={this.state.senha} onChange={this.onChange} />
+                        <InputCustomizado name="titulo" nomeLabel="Titulo" id="titulo" type="text" placeholder="Titulo" value={this.state.titulo} onChange={this.onChange} />
+                        <InputCustomizado name="preco" nomeLabel="Preço" id="preco" type="text" placeholder="Ex: 10.20" value={this.state.preco} onChange={this.onChange} />
+                        <div className="pure-control-group">
+                        <label htmlFor="autorId">Autor</label>
+                            <select value={ this.state.autorId } name="autorId" id="autorId" onChange={ this.onChange }>
+                                <option value="">Selecione Um Autor</option>
+                                { 
+                                    this.props.autores.map(function(autor) {
+                                    return <option key={ autor.id } value={ autor.id }>
+                                                { autor.nome }
+                                        </option>;
+                                    })
+                                }
+                            </select>
+                        </div>
 
                         <div className="pure-controls">
                             <button type="submit" className="pure-button pure-button-primary">Gravar</button>
@@ -64,25 +76,27 @@ class FormularioAutor extends Component {
     }
 }
 
-class TabelaAutores extends Component {
+class TabelaLivros extends Component {
 
     render() {
         return (
             <table className="pure-table pure-table-horizontal">
                 <thead>
                     <tr>
-                        <th>Nome</th>
-                        <th>Email</th>
+                        <th>Titulo</th>
+                        <th>Preço</th>
+                        <th>Autor</th>
                     </tr>
                 </thead>
 
                 <tbody>
                     {
-                        this.props.lista.map((autor) => {
+                        this.props.lista.map((livro) => {
                             return (
-                                <tr key={autor.id}>
-                                    <td>{autor.nome}</td>
-                                    <td>{autor.email}</td>
+                                <tr key={livro.id}>
+                                    <td>{livro.titulo}</td>
+                                    <td>{livro.preco}</td>
+                                    <td>{livro.autor.nome}</td>
                                 </tr>
                             );
                         })
@@ -93,34 +107,43 @@ class TabelaAutores extends Component {
     }
 }
 
-export default class AutorBox extends Component {
-    constructor() {
+export default class LivroBox extends Component{
+    constructor(){
         super();
-        this.state = { lista: [] }
+        this.state={lista:[],autores:[]}
     }
+
     componentDidMount() {
 
         $.ajax({
-            url: "https://cdc-react.herokuapp.com/api/autores",
+            url: "https://cdc-react.herokuapp.com/api/livros",
             dataType: 'json',
             success: (resposta) => {
                 this.setState({ lista: resposta });
             }
-        })
+        });
+        $.ajax({
+            url:"https://cdc-react.herokuapp.com/api/autores",
+            dataType: 'json',
+            success:(autores)=>{
+              this.setState({autores:autores});
+            }
+          });
+
         PubSub.subscribe('atualiza-lista-autores', (topico, novaListagem) => {
             this.setState({ lista: novaListagem });
         })
     };
-
+    
     render() {
         return (
             <div>
                 <div className="header">
-                    <h1>Cadastro de autores</h1>
+                    <h1>Cadastro de livros</h1>
                 </div>
                 <div className="content" id="content">
-                    <FormularioAutor/>
-                    <TabelaAutores lista={this.state.lista}/>
+                    <FormularioLivro autores={this.state.autores}/>
+                    <TabelaLivros lista={this.state.lista}/>
                 </div>
             </div>
         )
